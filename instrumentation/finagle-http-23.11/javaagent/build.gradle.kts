@@ -25,11 +25,11 @@ val scalaMinor = Regex("""^([0-9]+\.[0-9]+)\.?.*$""").find(scalaVersion)!!.run {
   minorVersion
 }
 
-val scalified = fun(pack: String): String {
-  return "${pack}_$scalaMinor"
-}
+val scalified = fun(pack: String): String = "${pack}_$scalaMinor"
 
 dependencies {
+  bootstrap(project(":instrumentation:executors:bootstrap"))
+
   library("${scalified("com.twitter:finagle-http")}:$finagleVersion")
 
   // should wire netty contexts

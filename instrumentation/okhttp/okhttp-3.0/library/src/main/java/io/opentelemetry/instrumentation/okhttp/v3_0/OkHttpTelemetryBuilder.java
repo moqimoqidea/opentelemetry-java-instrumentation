@@ -7,31 +7,45 @@ package io.opentelemetry.instrumentation.okhttp.v3_0;
 
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import io.opentelemetry.api.OpenTelemetry;
+import io.opentelemetry.instrumentation.api.incubator.builder.internal.DefaultHttpClientInstrumenterBuilder;
 import io.opentelemetry.instrumentation.api.instrumenter.AttributesExtractor;
+import io.opentelemetry.instrumentation.api.instrumenter.SpanNameExtractor;
 import io.opentelemetry.instrumentation.api.semconv.http.HttpClientAttributesExtractorBuilder;
-import io.opentelemetry.instrumentation.api.semconv.http.HttpSpanNameExtractorBuilder;
-import io.opentelemetry.instrumentation.okhttp.v3_0.internal.OkHttpInstrumenterFactory;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
-import java.util.function.Consumer;
-import okhttp3.Request;
+import io.opentelemetry.instrumentation.okhttp.v3_0.internal.Experimental;
+import io.opentelemetry.instrumentation.okhttp.v3_0.internal.OkHttpClientInstrumenterBuilderFactory;
+import java.util.Collection;
+import java.util.function.Function;
+import okhttp3.Interceptor;
 import okhttp3.Response;
 
 /** A builder of {@link OkHttpTelemetry}. */
 public final class OkHttpTelemetryBuilder {
 
+  private final DefaultHttpClientInstrumenterBuilder<Interceptor.Chain, Response> builder;
   private final OpenTelemetry openTelemetry;
-  private final List<AttributesExtractor<Request, Response>> additionalExtractors =
-      new ArrayList<>();
-  private Consumer<HttpClientAttributesExtractorBuilder<Request, Response>> extractorConfigurer =
-      builder -> {};
-  private Consumer<HttpSpanNameExtractorBuilder<Request>> spanNameExtractorConfigurer =
-      builder -> {};
-  private boolean emitExperimentalHttpClientMetrics = false;
+
+  static {
+    Experimental.setSetEmitExperimentalTelemetry(
+        (builder, emit) -> builder.builder.setEmitExperimentalHttpClientMetrics(emit));
+  }
 
   OkHttpTelemetryBuilder(OpenTelemetry openTelemetry) {
+    builder = OkHttpClientInstrumenterBuilderFactory.create(openTelemetry);
     this.openTelemetry = openTelemetry;
+  }
+
+  /**
+   * Adds an additional {@link AttributesExtractor} to invoke to set attributes to instrumented
+   * items.
+   *
+   * @deprecated Use {@link #addAttributesExtractor(AttributesExtractor)} instead.
+   */
+  @Deprecated
+  @CanIgnoreReturnValue
+  public OkHttpTelemetryBuilder addAttributeExtractor(
+      AttributesExtractor<? super Interceptor.Chain, ? super Response> attributesExtractor) {
+    builder.addAttributesExtractor(attributesExtractor);
+    return this;
   }
 
   /**
@@ -40,8 +54,8 @@ public final class OkHttpTelemetryBuilder {
    */
   @CanIgnoreReturnValue
   public OkHttpTelemetryBuilder addAttributesExtractor(
-      AttributesExtractor<Request, Response> attributesExtractor) {
-    additionalExtractors.add(attributesExtractor);
+      AttributesExtractor<? super Interceptor.Chain, ? super Response> attributesExtractor) {
+    builder.addAttributesExtractor(attributesExtractor);
     return this;
   }
 
@@ -51,9 +65,8 @@ public final class OkHttpTelemetryBuilder {
    * @param requestHeaders A list of HTTP header names.
    */
   @CanIgnoreReturnValue
-  public OkHttpTelemetryBuilder setCapturedRequestHeaders(List<String> requestHeaders) {
-    extractorConfigurer =
-        extractorConfigurer.andThen(builder -> builder.setCapturedRequestHeaders(requestHeaders));
+  public OkHttpTelemetryBuilder setCapturedRequestHeaders(Collection<String> requestHeaders) {
+    builder.setCapturedRequestHeaders(requestHeaders);
     return this;
   }
 
@@ -63,9 +76,8 @@ public final class OkHttpTelemetryBuilder {
    * @param responseHeaders A list of HTTP header names.
    */
   @CanIgnoreReturnValue
-  public OkHttpTelemetryBuilder setCapturedResponseHeaders(List<String> responseHeaders) {
-    extractorConfigurer =
-        extractorConfigurer.andThen(builder -> builder.setCapturedResponseHeaders(responseHeaders));
+  public OkHttpTelemetryBuilder setCapturedResponseHeaders(Collection<String> responseHeaders) {
+    builder.setCapturedResponseHeaders(responseHeaders);
     return this;
   }
 
@@ -80,14 +92,11 @@ public final class OkHttpTelemetryBuilder {
    * not supplement it.
    *
    * @param knownMethods A set of recognized HTTP request methods.
-   * @see HttpClientAttributesExtractorBuilder#setKnownMethods(Set)
+   * @see HttpClientAttributesExtractorBuilder#setKnownMethods(Collection)
    */
   @CanIgnoreReturnValue
-  public OkHttpTelemetryBuilder setKnownMethods(Set<String> knownMethods) {
-    extractorConfigurer =
-        extractorConfigurer.andThen(builder -> builder.setKnownMethods(knownMethods));
-    spanNameExtractorConfigurer =
-        spanNameExtractorConfigurer.andThen(builder -> builder.setKnownMethods(knownMethods));
+  public OkHttpTelemetryBuilder setKnownMethods(Collection<String> knownMethods) {
+    builder.setKnownMethods(knownMethods);
     return this;
   }
 
@@ -96,11 +105,25 @@ public final class OkHttpTelemetryBuilder {
    *
    * @param emitExperimentalHttpClientMetrics {@code true} if the experimental HTTP client metrics
    *     are to be emitted.
+   * @deprecated Use {@link Experimental#setEmitExperimentalTelemetry(OkHttpTelemetryBuilder,
+   *     boolean)} instead.
    */
+  @Deprecated
   @CanIgnoreReturnValue
   public OkHttpTelemetryBuilder setEmitExperimentalHttpClientMetrics(
       boolean emitExperimentalHttpClientMetrics) {
-    this.emitExperimentalHttpClientMetrics = emitExperimentalHttpClientMetrics;
+    builder.setEmitExperimentalHttpClientMetrics(emitExperimentalHttpClientMetrics);
+    return this;
+  }
+
+  /** Sets custom {@link SpanNameExtractor} via transform function. */
+  @CanIgnoreReturnValue
+  public OkHttpTelemetryBuilder setSpanNameExtractor(
+      Function<
+              SpanNameExtractor<? super Interceptor.Chain>,
+              ? extends SpanNameExtractor<? super Interceptor.Chain>>
+          spanNameExtractorTransformer) {
+    builder.setSpanNameExtractor(spanNameExtractorTransformer);
     return this;
   }
 
@@ -108,13 +131,6 @@ public final class OkHttpTelemetryBuilder {
    * Returns a new {@link OkHttpTelemetry} with the settings of this {@link OkHttpTelemetryBuilder}.
    */
   public OkHttpTelemetry build() {
-    return new OkHttpTelemetry(
-        OkHttpInstrumenterFactory.create(
-            openTelemetry,
-            extractorConfigurer,
-            spanNameExtractorConfigurer,
-            additionalExtractors,
-            emitExperimentalHttpClientMetrics),
-        openTelemetry.getPropagators());
+    return new OkHttpTelemetry(builder.build(), openTelemetry.getPropagators());
   }
 }
