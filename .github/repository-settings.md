@@ -18,7 +18,17 @@ settings](https://github.com/open-telemetry/community/blob/main/docs/how-to-conf
   (To reduce friction for new contributors,
   as the default is "Require approval for first-time contributors")
 
+- Workflow permissions
+  - Default permissions granted to the `GITHUB_TOKEN` when running workflows in this repository:
+    Read repository contents and packages permissions
+  - Allow GitHub Actions to create and approve pull requests: UNCHECKED
+
 ## Branch protections
+
+The order of branch protection rules
+[can be important](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/defining-the-mergeability-of-pull-requests/managing-a-branch-protection-rule#about-branch-protection-rules).
+The branch protection rules below should be added before the `**/**` branch protection rule
+(this may require deleting the `**/**` rule and recreating it at the end).
 
 ### `main`
 
@@ -59,17 +69,19 @@ for [`dependabot/**/**`](https://github.com/open-telemetry/community/blob/main/d
 
 ## Secrets and variables > Actions
 
-- `GE_CACHE_PASSWORD`
-- `GE_CACHE_USERNAME`
+### Repository secrets
+
 - `GPG_PASSWORD` - stored in OpenTelemetry-Java 1Password
 - `GPG_PRIVATE_KEY` - stored in OpenTelemetry-Java 1Password
-- `GRADLE_ENTERPRISE_ACCESS_KEY` - owned by [@trask](https://github.com/trask)
-  - Generated at https://ge.opentelemetry.io > My settings > Access keys
-  - format of env var is `ge.opentelemetry.io=<access key>`,
-    see [docs](https://docs.gradle.com/enterprise/gradle-plugin/#via_environment_variable)
 - `GRADLE_PUBLISH_KEY`
 - `GRADLE_PUBLISH_SECRET`
 - `NVD_API_KEY` - stored in OpenTelemetry-Java 1Password
-- `OPENTELEMETRYBOT_GITHUB_TOKEN` - owned by [@trask](https://github.com/trask)
+  - Generated at https://nvd.nist.gov/developers/request-an-api-key
+  - Key is associated with [@trask](https://github.com/trask)'s gmail address
 - `SONATYPE_KEY` - owned by [@trask](https://github.com/trask)
 - `SONATYPE_USER` - owned by [@trask](https://github.com/trask)
+- `FLAKY_TEST_REPORTER_ACCESS_KEY` - owned by [@laurit](https://github.com/laurit)
+
+### Organization secrets
+
+- `OPENTELEMETRYBOT_GITHUB_TOKEN`

@@ -8,6 +8,7 @@ dependencies {
 
   testCompileOnly(project(":instrumentation-api"))
   testCompileOnly(project(":javaagent-tooling"))
+  testCompileOnly(project(":javaagent-bootstrap"))
   testCompileOnly(project(":javaagent-extension-api"))
   testCompileOnly(project(":muzzle"))
 
@@ -51,7 +52,6 @@ tasks {
       includeTestsMatching("InstrumentOldBytecode")
     }
     include("**/InstrumentOldBytecode.*")
-    jvmArgs("-Dotel.instrumentation.inline-ibm-resource-level.enabled=false")
   }
 
   val testInlineModuleOldBytecodeInstrumentation by registering(Test::class) {
@@ -59,7 +59,6 @@ tasks {
       includeTestsMatching("InstrumentOldBytecode")
     }
     include("**/InstrumentOldBytecode.*")
-    jvmArgs("-Dotel.instrumentation.indy-ibm-resource-level.enabled=false")
   }
 
   test {

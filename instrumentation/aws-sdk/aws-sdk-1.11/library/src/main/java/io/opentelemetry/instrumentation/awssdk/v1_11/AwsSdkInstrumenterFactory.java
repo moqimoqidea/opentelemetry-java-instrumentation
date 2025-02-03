@@ -14,6 +14,7 @@ import io.opentelemetry.api.OpenTelemetry;
 import io.opentelemetry.api.common.AttributesBuilder;
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.context.Context;
+import io.opentelemetry.instrumentation.api.incubator.semconv.db.DbClientMetrics;
 import io.opentelemetry.instrumentation.api.incubator.semconv.messaging.MessageOperation;
 import io.opentelemetry.instrumentation.api.incubator.semconv.messaging.MessagingAttributesExtractor;
 import io.opentelemetry.instrumentation.api.incubator.semconv.messaging.MessagingAttributesGetter;
@@ -27,6 +28,7 @@ import io.opentelemetry.instrumentation.api.instrumenter.SpanNameExtractor;
 import io.opentelemetry.instrumentation.api.semconv.http.HttpClientAttributesExtractor;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import javax.annotation.Nullable;
 
@@ -39,18 +41,14 @@ final class AwsSdkInstrumenterFactory {
       RpcClientAttributesExtractor.create(AwsSdkRpcAttributesGetter.INSTANCE);
   private static final AwsSdkExperimentalAttributesExtractor experimentalAttributesExtractor =
       new AwsSdkExperimentalAttributesExtractor();
+  private static final AwsSdkAttributesExtractor sdkAttributesExtractor =
+      new AwsSdkAttributesExtractor();
   private static final SnsAttributesExtractor snsAttributesExtractor = new SnsAttributesExtractor();
 
   private static final List<AttributesExtractor<Request<?>, Response<?>>>
-      defaultAttributesExtractors =
-          Arrays.asList(httpAttributesExtractor, rpcAttributesExtractor, snsAttributesExtractor);
+      defaultAttributesExtractors = createAttributesExtractors(false);
   private static final List<AttributesExtractor<Request<?>, Response<?>>>
-      extendedAttributesExtractors =
-          Arrays.asList(
-              httpAttributesExtractor,
-              rpcAttributesExtractor,
-              snsAttributesExtractor,
-              experimentalAttributesExtractor);
+      extendedAttributesExtractors = createAttributesExtractors(true);
   private static final AwsSdkSpanNameExtractor spanName = new AwsSdkSpanNameExtractor();
 
   private final OpenTelemetry openTelemetry;
@@ -67,6 +65,21 @@ final class AwsSdkInstrumenterFactory {
     this.capturedHeaders = capturedHeaders;
     this.captureExperimentalSpanAttributes = captureExperimentalSpanAttributes;
     this.messagingReceiveInstrumentationEnabled = messagingReceiveInstrumentationEnabled;
+  }
+
+  private static List<AttributesExtractor<Request<?>, Response<?>>> createAttributesExtractors(
+      boolean includeExperimental) {
+    List<AttributesExtractor<Request<?>, Response<?>>> extractors =
+        new ArrayList<>(
+            Arrays.asList(
+                httpAttributesExtractor,
+                rpcAttributesExtractor,
+                snsAttributesExtractor,
+                sdkAttributesExtractor));
+    if (includeExperimental) {
+      extractors.add(experimentalAttributesExtractor);
+    }
+    return extractors;
   }
 
   Instrumenter<Request<?>, Response<?>> requestInstrumenter() {
@@ -173,6 +186,17 @@ final class AwsSdkInstrumenterFactory {
         attributesExtractors(),
         singletonList(messagingAttributeExtractor),
         true);
+  }
+
+  Instrumenter<Request<?>, Response<?>> dynamoDbInstrumenter() {
+    DynamoDbAttributesExtractor dynamoDbAttributesExtractor = new DynamoDbAttributesExtractor();
+
+    return Instrumenter.<Request<?>, Response<?>>builder(
+            openTelemetry, INSTRUMENTATION_NAME, spanName)
+        .addAttributesExtractors(attributesExtractors())
+        .addAttributesExtractors(Collections.singletonList(dynamoDbAttributesExtractor))
+        .addOperationMetrics(DbClientMetrics.get())
+        .buildInstrumenter(SpanKindExtractor.alwaysClient());
   }
 
   private static <REQUEST, RESPONSE> Instrumenter<REQUEST, RESPONSE> createInstrumenter(
