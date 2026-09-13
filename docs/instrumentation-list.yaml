@@ -1533,8 +1533,8 @@ definitions:
       attributes:
       - name: db.client.connection.pool.name
         type: STRING
-    db.client.connection.max-c7917942:
-      name: db.client.connection.max
+    db.client.connection.limit-12f711ee:
+      name: db.client.connection.limit
       description: The maximum number of open connections allowed.
       instrument: updowncounter
       data_type: LONG_SUM
@@ -1920,6 +1920,27 @@ definitions:
         type: STRING
       - name: db.system.name
         type: STRING
+      - name: server.address
+        type: STRING
+      - name: server.port
+        type: LONG
+    db.client.operation.duration-ec9463db:
+      name: db.client.operation.duration
+      description: Duration of database client operations.
+      instrument: histogram
+      data_type: HISTOGRAM
+      unit: s
+      attributes:
+      - name: db.namespace
+        type: STRING
+      - name: db.query.summary
+        type: STRING
+      - name: db.system.name
+        type: STRING
+      - name: network.peer.address
+        type: STRING
+      - name: network.peer.port
+        type: LONG
       - name: server.address
         type: STRING
       - name: server.port
@@ -5383,7 +5404,7 @@ libraries:
     - db.client.connection.count-2e6ba9b7
     - db.client.connection.idle.max-b95e4f5c
     - db.client.connection.idle.min-73bdafbc
-    - db.client.connection.max-c7917942
+    - db.client.connection.limit-12f711ee
     - db.client.connection.pending_requests-a0f41111
 - name: apache-commons-pool-2.0
   display_name: Apache Commons Pool
@@ -5435,7 +5456,7 @@ libraries:
     - db.client.connection.count-2e6ba9b7
     - db.client.connection.idle.max-b95e4f5c
     - db.client.connection.idle.min-73bdafbc
-    - db.client.connection.max-c7917942
+    - db.client.connection.limit-12f711ee
 - name: apache-dubbo-2.7
   display_name: Apache Dubbo
   description: |
@@ -7117,6 +7138,8 @@ libraries:
       attributes:
       - name: aws.agent
         type: STRING
+      - name: aws.bedrock.guardrail.id
+        type: STRING
       - name: aws.dynamodb.consumed_capacity
         type: STRING_ARRAY
       - name: aws.dynamodb.count
@@ -8054,6 +8077,7 @@ libraries:
   has_standalone_library: true
   has_javaagent: true
   javaagent_target_versions:
+  - com.datastax.oss:java-driver-core-shaded:[4.4,)
   - com.datastax.oss:java-driver-core:[4.4,)
   - org.apache.cassandra:java-driver-core:(,)
   configuration_refs:
@@ -8171,7 +8195,7 @@ libraries:
         type: LONG
   - when: otel.semconv-stability.opt-in=database
     metric_refs:
-    - db.client.operation.duration-d4212042
+    - db.client.operation.duration-ec9463db
     spans:
     - span_kind: CLIENT
       attributes:
@@ -8185,6 +8209,10 @@ libraries:
         type: STRING
       - name: error.type
         type: STRING
+      - name: network.peer.address
+        type: STRING
+      - name: network.peer.port
+        type: LONG
       - name: server.address
         type: STRING
       - name: server.port
@@ -8224,7 +8252,7 @@ libraries:
         type: LONG
   - when: otel.semconv-stability.opt-in=database
     metric_refs:
-    - db.client.operation.duration-d4212042
+    - db.client.operation.duration-ec9463db
     spans:
     - span_kind: CLIENT
       attributes:
@@ -8238,6 +8266,10 @@ libraries:
         type: STRING
       - name: error.type
         type: STRING
+      - name: network.peer.address
+        type: STRING
+      - name: network.peer.port
+        type: LONG
       - name: server.address
         type: STRING
       - name: server.port
@@ -8255,7 +8287,6 @@ libraries:
     name: io.opentelemetry.couchbase-2.0
   has_javaagent: true
   javaagent_target_versions:
-  - com.couchbase.client:java-client:[2,2.6)
   - com.couchbase.client:java-client:[2,3)
   configuration_refs:
   - common.db.query-sanitization.enabled
@@ -8495,12 +8526,16 @@ libraries:
         type: STRING
       - name: db.operation.name
         type: STRING
+      - name: db.query.text
+        type: STRING
       - name: db.system.name
         type: STRING
       - name: network.peer.address
         type: STRING
       - name: network.peer.port
         type: LONG
+      - name: server.address
+        type: STRING
   - when: otel.semconv-stability.opt-in=database,otel.instrumentation.couchbase.experimental-span-attributes=true
     spans:
     - span_kind: INTERNAL
@@ -8508,6 +8543,8 @@ libraries:
       - name: db.collection.name
         type: STRING
       - name: db.couchbase.local_id
+        type: STRING
+      - name: db.couchbase.operation_id
         type: STRING
       - name: db.couchbase.operation_id
         type: LONG
@@ -8521,12 +8558,16 @@ libraries:
         type: STRING
       - name: db.operation.name
         type: STRING
+      - name: db.query.text
+        type: STRING
       - name: db.system.name
         type: STRING
       - name: network.peer.address
         type: STRING
       - name: network.peer.port
         type: LONG
+      - name: server.address
+        type: STRING
 - name: couchbase-3.2
   display_name: Couchbase Client
   description: |
@@ -8595,6 +8636,10 @@ libraries:
         type: STRING
       - name: network.peer.port
         type: LONG
+      - name: server.address
+        type: STRING
+      - name: server.port
+        type: LONG
   - when: otel.semconv-stability.opt-in=database,otel.instrumentation.couchbase.experimental-span-attributes=true
     spans:
     - span_kind: INTERNAL
@@ -8624,6 +8669,10 @@ libraries:
       - name: network.peer.address
         type: STRING
       - name: network.peer.port
+        type: LONG
+      - name: server.address
+        type: STRING
+      - name: server.port
         type: LONG
 - name: dropwizard-metrics-4.0
   display_name: Dropwizard Metrics
@@ -9039,8 +9088,6 @@ libraries:
         type: LONG
       - name: server.address
         type: STRING
-      - name: server.port
-        type: LONG
 - name: elasticsearch-transport-6.0
   display_name: Elasticsearch Transport Client
   description: |
@@ -10019,7 +10066,7 @@ libraries:
     - db.client.connection.count-2e6ba9b7
     - db.client.connection.create_time-4f586679
     - db.client.connection.idle.min-73bdafbc
-    - db.client.connection.max-c7917942
+    - db.client.connection.limit-12f711ee
     - db.client.connection.pending_requests-a0f41111
     - db.client.connection.timeouts-d2dbfa58
     - db.client.connection.use_time-a06760eb
@@ -13695,6 +13742,10 @@ libraries:
         type: STRING
       - name: db.system.name
         type: STRING
+      - name: network.peer.address
+        type: STRING
+      - name: network.peer.port
+        type: LONG
       - name: server.address
         type: STRING
       - name: server.port
@@ -14632,8 +14683,6 @@ libraries:
       attributes:
       - name: db.operation.name
         type: STRING
-      - name: db.query.text
-        type: STRING
       - name: db.system.name
         type: STRING
       - name: server.address
@@ -14674,8 +14723,6 @@ libraries:
       attributes:
       - name: db.operation.name
         type: STRING
-      - name: db.query.text
-        type: STRING
       - name: db.system.name
         type: STRING
       - name: server.address
@@ -14705,7 +14752,7 @@ libraries:
   - when: otel.semconv-stability.opt-in=database
     metric_refs:
     - db.client.connection.count-2e6ba9b7
-    - db.client.connection.max-c7917942
+    - db.client.connection.limit-12f711ee
     - db.client.connection.pending_requests-a0f41111
 - name: oshi-5.0
   display_name: OSHI
@@ -16181,7 +16228,7 @@ libraries:
     metric_refs:
     - db.client.connection.count-2e6ba9b7
     - db.client.connection.idle.min-73bdafbc
-    - db.client.connection.max-c7917942
+    - db.client.connection.limit-12f711ee
     - db.client.connection.pending_requests-a0f41111
 - name: redisson-metrics-3.18
   display_name: Redisson
@@ -16208,7 +16255,7 @@ libraries:
     metric_refs:
     - db.client.connection.count-2e6ba9b7
     - db.client.connection.idle.min-73bdafbc
-    - db.client.connection.max-c7917942
+    - db.client.connection.limit-12f711ee
     - db.client.connection.pending_requests-a0f41111
 - name: redisson-metrics-3.26
   display_name: Redisson
@@ -16235,7 +16282,7 @@ libraries:
     metric_refs:
     - db.client.connection.count-2e6ba9b7
     - db.client.connection.idle.min-73bdafbc
-    - db.client.connection.max-c7917942
+    - db.client.connection.limit-12f711ee
     - db.client.connection.pending_requests-a0f41111
 - name: resources
   display_name: Resource Detectors
@@ -18462,7 +18509,7 @@ libraries:
     - db.client.connection.count-2e6ba9b7
     - db.client.connection.idle.max-b95e4f5c
     - db.client.connection.idle.min-73bdafbc
-    - db.client.connection.max-c7917942
+    - db.client.connection.limit-12f711ee
 - name: tomcat-jdbc-8.5
   display_name: Tomcat JDBC
   description: |
@@ -18491,7 +18538,7 @@ libraries:
     - db.client.connection.count-2e6ba9b7
     - db.client.connection.idle.max-b95e4f5c
     - db.client.connection.idle.min-73bdafbc
-    - db.client.connection.max-c7917942
+    - db.client.connection.limit-12f711ee
     - db.client.connection.pending_requests-a0f41111
 - name: twilio-6.6
   display_name: Twilio
@@ -19151,7 +19198,7 @@ libraries:
   - when: otel.semconv-stability.opt-in=database
     metric_refs:
     - db.client.connection.count-2e6ba9b7
-    - db.client.connection.max-c7917942
+    - db.client.connection.limit-12f711ee
 - name: wicket-8.0
   display_name: Apache Wicket
   description: |
