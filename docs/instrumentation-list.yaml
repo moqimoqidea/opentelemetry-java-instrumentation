@@ -3526,15 +3526,6 @@ definitions:
       attributes:
       - name: client-id
         type: STRING
-    kafka.consumer.heartbeat_response_time_max-e3333d1e:
-      name: kafka.consumer.heartbeat_response_time_max
-      description: The max time taken to receive a response to a heartbeat request
-      instrument: gauge
-      data_type: DOUBLE_GAUGE
-      unit: ''
-      attributes:
-      - name: client-id
-        type: STRING
     kafka.consumer.heartbeat_total-5c57e127:
       name: kafka.consumer.heartbeat_total
       description: The total number of heartbeats
@@ -5254,6 +5245,28 @@ definitions:
       unit: s
       attributes:
       - name: messaging.destination.name
+        type: STRING
+      - name: messaging.operation.name
+        type: STRING
+      - name: messaging.operation.type
+        type: STRING
+      - name: messaging.system
+        type: STRING
+      - name: server.address
+        type: STRING
+      - name: server.port
+        type: LONG
+    messaging.client.operation.duration-df200871:
+      name: messaging.client.operation.duration
+      description: Duration of messaging operation initiated by a producer or consumer
+        client.
+      instrument: histogram
+      data_type: HISTOGRAM
+      unit: s
+      attributes:
+      - name: messaging.destination.name
+        type: STRING
+      - name: messaging.destination.subscription.name
         type: STRING
       - name: messaging.operation.name
         type: STRING
@@ -10011,6 +10024,8 @@ libraries:
         type: LONG
       - name: server.address
         type: STRING
+      - name: server.port
+        type: LONG
 - name: elasticsearch-transport-6.0
   display_name: Elasticsearch Transport Client
   description: |
@@ -10100,6 +10115,8 @@ libraries:
         type: LONG
       - name: server.address
         type: STRING
+      - name: server.port
+        type: LONG
 - name: executors
   display_name: Java Executors
   description: |
@@ -13192,7 +13209,6 @@ libraries:
     - kafka.consumer.fetch_throttle_time_max-25ea21b8
     - kafka.consumer.fetch_total-7db71e3f
     - kafka.consumer.heartbeat_rate-12d81990
-    - kafka.consumer.heartbeat_response_time_max-e3333d1e
     - kafka.consumer.heartbeat_total-5c57e127
     - kafka.consumer.incoming_byte_rate-7de5fad6
     - kafka.consumer.incoming_byte_total-a66ec19e
@@ -16613,7 +16629,7 @@ libraries:
   - when: otel.semconv-stability.preview=messaging
     metric_refs:
     - messaging.client.consumed.messages-5c21579f
-    - messaging.client.operation.duration-dab7c60a
+    - messaging.client.operation.duration-df200871
     - messaging.client.sent.messages-38a90199
     - messaging.process.duration-9ee3dd0a
     spans:
