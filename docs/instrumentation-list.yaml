@@ -10011,6 +10011,8 @@ libraries:
         type: LONG
       - name: server.address
         type: STRING
+      - name: server.port
+        type: LONG
 - name: elasticsearch-transport-6.0
   display_name: Elasticsearch Transport Client
   description: |
